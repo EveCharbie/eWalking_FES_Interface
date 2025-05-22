@@ -4,6 +4,7 @@ from Stim_P24.Stim_Interface import StimInterfaceWidget
 from Received_data_force import DataReceiver
 import logging
 from PyQt5.QtCore import QThread
+import queue
 
 
 # Configure le logging
@@ -18,12 +19,15 @@ def main():
     # Créez une application PyQt5
     app = QApplication(sys.argv)
 
+    # Créer un buffer pour mettre en cache les données reçues
+    buffer = queue.Queue()
+
     # Créez une instance du widget de visualisation
-    visualization_widget = StimInterfaceWidget()
+    visualization_widget = StimInterfaceWidget(buffer)
     visualization_widget.show()
 
     # Créez une instance de DataReceiver
-    data_receiver = DataReceiver(server_ip, server_port, visualization_widget)
+    data_receiver = DataReceiver(server_ip, server_port, visualization_widget, buffer)
 
     class DataThread(QThread):
         def __init__(self, receiver):
