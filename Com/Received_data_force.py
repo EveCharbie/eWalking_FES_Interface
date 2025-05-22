@@ -33,10 +33,10 @@ class DataReceiver(QObject):
 
         # Plots forces antéropostérieures
         self.force_plot_right = pg.PlotWidget(title="Right AP Force")
-        self.plot_curve_fyr = self.force_plot_right.plot(pen='y')
+        self.plot_curve_fyr = self.force_plot_right.plot(pen="y")
 
         self.force_plot_left = pg.PlotWidget(title="Left AP Force")
-        self.plot_curve_fyl = self.force_plot_left.plot(pen='r')
+        self.plot_curve_fyl = self.force_plot_left.plot(pen="r")
 
         # Ajout des plots au GUI
         self.visualization_widget.layout().addWidget(self.force_plot_right)
@@ -78,20 +78,16 @@ class DataReceiver(QObject):
                             if len(self.fyr_buffer) > 30:
                                 info_feet = {
                                     "right": self.detect_phase_force(
-                                        self.fyr_buffer,
-                                        self.fzr_buffer, self.fzl_buffer,
-                                        1),
+                                        self.fyr_buffer, self.fzr_buffer, self.fzl_buffer, 1
+                                    ),
                                     "left": self.detect_phase_force(
-                                        self.fyl_buffer,
-                                        self.fzl_buffer, self.fzr_buffer,
-                                        2),
+                                        self.fyl_buffer, self.fzl_buffer, self.fzr_buffer, 2
+                                    ),
                                 }
                                 self.manage_stimulation(info_feet)
 
                             if received_data["mks"] and self.visualization_widget.process_id:
                                 self.check_cycle(self.fzr_buffer, received_data)
-                                
-                               
 
                 except Exception as e:
                     logging.error(f"Erreur lors de la réception des données: {e}")
@@ -109,17 +105,17 @@ class DataReceiver(QObject):
             self.marker_data_cycle = {}
             data_force_to_pro = self.force_data_cycle
             self.force_data_cycle = []
-            self.cycle_processor.calculate_kinematic_dynamic(self.visualization_widget.model, data_force_to_pro, data_mks_to_pro)
-
+            self.cycle_processor.calculate_kinematic_dynamic(
+                self.visualization_widget.model, data_force_to_pro, data_mks_to_pro
+            )
 
         else:
-            mks = received_data['mks']
+            mks = received_data["mks"]
             for name, pos in mks.items():
                 if name not in self.marker_data:
                     self.marker_data_cycle[name] = []
                 self.marker_data_cycle[name].append(pos)
-            self.force_data_cycle.append(received_data['force'])
-
+            self.force_data_cycle.append(received_data["force"])
 
     def detect_phase_force(self, data_force_ap, data_force_v, data_force_opp, foot_num):
         info = "nothing"
@@ -131,26 +127,27 @@ class DataReceiver(QObject):
 
         current_time = datetime.now().timestamp()
 
-        if force_vert_last > 0.7 * self.visualization_widget.subject_mass and  any(last_second_force_vert > 50):
-            if (force_ap_last < 0.1 * self.visualization_widget.subject_mass
-                    and force_ap_previous > force_ap_last
-                    and not self.sendStim[foot_num]
-                    and self.last_foot_stim is not foot_num):
+        if force_vert_last > 0.7 * self.visualization_widget.subject_mass and any(last_second_force_vert > 50):
+            if (
+                force_ap_last < 0.1 * self.visualization_widget.subject_mass
+                and force_ap_previous > force_ap_last
+                and not self.sendStim[foot_num]
+                and self.last_foot_stim is not foot_num
+            ):
                 info = "StartStim"
-                print('heel off')
+                print("heel off")
                 self.event_log.append((current_time, f"HeelOff_{foot_num}"))
                 self.sendStim[foot_num] = True
                 self.last_foot_stim = foot_num
 
-        if ((force_vert_last < 0.05 * self.visualization_widget.subject_mass
-            or (force_ap_previous < force_ap_last
-                and force_ap_last> -0.01 * self.visualization_widget.subject_mass)
-        )
-                and self.sendStim[foot_num]):
+        if (
+            force_vert_last < 0.05 * self.visualization_widget.subject_mass
+            or (force_ap_previous < force_ap_last and force_ap_last > -0.01 * self.visualization_widget.subject_mass)
+        ) and self.sendStim[foot_num]:
             info = "StopStim"
             self.event_log.append((current_time, f"ToeOff_{foot_num}"))
             self.sendStim[foot_num] = False
-            print('toe off')
+            print("toe off")
 
         return info
 
@@ -187,19 +184,17 @@ class DataReceiver(QObject):
         self.plot_curve_fyr.setData(times, self.fyr_buffer)
         self.plot_curve_fyl.setData(times, self.fyl_buffer)
 
-        self.force_plot_right.getPlotItem().getAxis('bottom').setTicks(
+        self.force_plot_right.getPlotItem().getAxis("bottom").setTicks(
             [[(t, datetime.fromtimestamp(t).strftime("%H:%M:%S")) for t in times[::50]]]
         )
-        self.force_plot_left.getPlotItem().getAxis('bottom').setTicks(
+        self.force_plot_left.getPlotItem().getAxis("bottom").setTicks(
             [[(t, datetime.fromtimestamp(t).strftime("%H:%M:%S")) for t in times[::50]]]
         )
 
-        self.force_plot_right.getPlotItem().setLabel('left', "Force (N)")
-        self.force_plot_right.getPlotItem().setLabel('bottom', "Time")
-        self.force_plot_left.getPlotItem().setLabel('left', "Force (N)")
-        self.force_plot_left.getPlotItem().setLabel('bottom', "Time")
-
-
+        self.force_plot_right.getPlotItem().setLabel("left", "Force (N)")
+        self.force_plot_right.getPlotItem().setLabel("bottom", "Time")
+        self.force_plot_left.getPlotItem().setLabel("left", "Force (N)")
+        self.force_plot_left.getPlotItem().setLabel("bottom", "Time")
 
         # Supprimer anciennes lignes
         for line in self.event_lines_right:
@@ -214,7 +209,7 @@ class DataReceiver(QObject):
             if "HeelOff_1" in event or "ToeOff_1" in event:
                 if times[0] <= timestamp <= times[-1]:
                     line = pg.InfiniteLine(pos=timestamp, angle=90, movable=False)
-                    color = 'g' if "HeelOff" in event else 'b'
+                    color = "g" if "HeelOff" in event else "b"
                     line.setPen(pg.mkPen(color, width=2))
                     self.force_plot_right.addItem(line)
                     self.event_lines_right.append(line)
@@ -222,7 +217,7 @@ class DataReceiver(QObject):
             elif "HeelOff_2" in event or "ToeOff_2" in event:
                 if times[0] <= timestamp <= times[-1]:
                     line = pg.InfiniteLine(pos=timestamp, angle=90, movable=False)
-                    color = 'g' if "HeelOff" in event else 'b'
+                    color = "g" if "HeelOff" in event else "b"
                     line.setPen(pg.mkPen(color, width=2))
                     self.force_plot_left.addItem(line)
                     self.event_lines_left.append(line)

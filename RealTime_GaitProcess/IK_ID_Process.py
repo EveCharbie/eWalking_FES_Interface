@@ -1,16 +1,28 @@
 import biorbd
 
+
 class DataProcessor:
     def __init__(self):
         self.cycle_num = 0
-        self.dof_corr = {"LHip": (36, 37, 38), "LKnee": (39, 40, 41), "LAnkle": (42, 43, 44),
-                        "RHip": (27, 28, 29), "RKnee": (30, 31, 32), "RAnkle": (33, 34, 35),
-                        "LShoulder": (18, 19, 20), "LElbow": (21, 22, 23), "LWrist": (24, 25, 26),
-                        "RShoulder": (9, 10, 11), "RElbow": (12, 13, 14), "RWrist": (15, 16, 17),
-                        "Thorax": (6, 7, 8), "Pelvis": (3, 4, 5)}
+        self.dof_corr = {
+            "LHip": (36, 37, 38),
+            "LKnee": (39, 40, 41),
+            "LAnkle": (42, 43, 44),
+            "RHip": (27, 28, 29),
+            "RKnee": (30, 31, 32),
+            "RAnkle": (33, 34, 35),
+            "LShoulder": (18, 19, 20),
+            "LElbow": (21, 22, 23),
+            "LWrist": (24, 25, 26),
+            "RShoulder": (9, 10, 11),
+            "RElbow": (12, 13, 14),
+            "RWrist": (15, 16, 17),
+            "Thorax": (6, 7, 8),
+            "Pelvis": (3, 4, 5),
+        }
 
     def calculate_kinematic_dynamic(self, model, force, mks):
-        mks=self.fill_missing_markers(mks,5)
+        mks = self.fill_missing_markers(mks, 5)
         freq = 100  # Hz
         n_frames = next(iter(mks.values())).shape[1]
         marker_names = [n.to_string() for n in model.technicalMarkerNames()]
@@ -37,19 +49,20 @@ class DataProcessor:
 
         # Forces externes
         contact_names = ["LFoot", "RFoot"]
-        platform_origin = np.array([
-            [0.79165588, 0.77004227, 0.00782072],  # PF1
-            [0.7856461, 0.2547548, 0.00760771],  # PF2
-        ])
+        platform_origin = np.array(
+            [
+                [0.79165588, 0.77004227, 0.00782072],  # PF1
+                [0.7856461, 0.2547548, 0.00760771],  # PF2
+            ]
+        )
 
         force = np.zeros((2, 3, n_frames))
         moment = np.zeros((2, 3, n_frames))
         for idx in range(2):
             idx = pf * 9
-            force = biorbd.Vector3d(*forces[idx:idx + 3, i])
-            moment = biorbd.Vector3d(*forces[idx + 3:idx + 6, i])
-            cop = biorbd.Vector3d(*forces[idx + 6:idx + 9, i])
-
+            force = biorbd.Vector3d(*forces[idx : idx + 3, i])
+            moment = biorbd.Vector3d(*forces[idx + 3 : idx + 6, i])
+            cop = biorbd.Vector3d(*forces[idx + 6 : idx + 9, i])
 
             force[idx] = self.forcedatafilter(force[f"Force_{idx + 1}"], 4, 2000, 10)
             moment[idx] = self.forcedatafilter(force[f"Moment_{idx + 1}"] / 1000, 4, 2000, 10)
@@ -71,7 +84,7 @@ class DataProcessor:
     def forcedatafilter(data, order, sampling_rate, cutoff_freq):
         nyquist = 0.5 * sampling_rate
         normal_cutoff = cutoff_freq / nyquist
-        b, a = butter(order, normal_cutoff, btype='low', analog=False)
+        b, a = butter(order, normal_cutoff, btype="low", analog=False)
         filtered_data = np.empty([len(data[:, 0]), len(data[0, :])])
         for ii in range(3):
             # filtered_data[ii, :] = medfilt(data[ii, :], kernel_size=5)
@@ -105,12 +118,10 @@ class DataProcessor:
                         continue
                     elif gap <= max_interp_gap:
                         # Interpolation linéaire
-                        filled[m, d, start + 1:end] = np.linspace(
-                            signal[start], signal[end], gap + 2
-                        )[1:-1]
+                        filled[m, d, start + 1 : end] = np.linspace(signal[start], signal[end], gap + 2)[1:-1]
                     else:
                         # Trop long : on fait un "hold" (on garde la dernière valeur connue)
-                        filled[m, d, start + 1:end] = signal[start]
+                        filled[m, d, start + 1 : end] = signal[start]
 
                 # Remplir le début si NaN au début
                 first = not_nan_idx[0]
@@ -120,6 +131,6 @@ class DataProcessor:
                 # Remplir la fin si NaN à la fin
                 last = not_nan_idx[-1]
                 if last < n_frames - 1:
-                    filled[m, d, last + 1:] = signal[last]
+                    filled[m, d, last + 1 :] = signal[last]
 
         return filled

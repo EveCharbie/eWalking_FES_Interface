@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
     QSpinBox,
     QComboBox,
     QLabel,
-    QFileDialog
+    QFileDialog,
 )
 import sys
 import logging
@@ -44,7 +44,6 @@ class StimInterfaceWidget(QWidget):
         self.num_config = 0
         self.model = None
         self.buffer = buffer
-
 
     def init_ui(self):
         """Initialisation de l'interface utilisateur."""
@@ -80,10 +79,9 @@ class StimInterfaceWidget(QWidget):
         model_selection = QPushButton("Choisir un fichier", self)
         model_selection.clicked.connect(self.open_filename_dialog)
 
-        self.process_dyn=QCheckBox('Process IK and ID')
+        self.process_dyn = QCheckBox("Process IK and ID")
         self.process_dyn.setChecked(False)
         self.process_dyn.stateChanged.connect(lambda state: self.info_dyn)
-
 
         general_layout.addWidget(subject_mass)
         general_layout.addWidget(model_selection)
@@ -91,9 +89,7 @@ class StimInterfaceWidget(QWidget):
 
         # Créer un bouton OK et connecter la fonction d'enregistrement
         ok_button = QPushButton("OK")
-        ok_button.clicked.connect(
-            lambda: self.save_subject_info(subject_mass.value())
-        )
+        ok_button.clicked.connect(lambda: self.save_subject_info(subject_mass.value()))
         # Ajouter le bouton au layout
         main_layout.addWidget(ok_button)
 
@@ -106,32 +102,29 @@ class StimInterfaceWidget(QWidget):
         # Retourner le QGroupBox complet
         return groupbox
 
-    def save_subject_info(self,mass_value):
+    def save_subject_info(self, mass_value):
         # Enregistrer les valeurs dans foot_emg
         self.subject_mass = mass_value * 9.81
 
     def open_filename_dialog(self):
         # Ouvre la boîte de dialogue pour sélectionner un fichier
         options = QFileDialog.Options()
-        file_name, _ = QFileDialog.getOpenFileName(self, "Sélectionner un fichier", "",
-                                                   "Tous les fichiers (*);;Fichiers texte (*.txt)", options=options)
+        file_name, _ = QFileDialog.getOpenFileName(
+            self, "Sélectionner un fichier", "", "Tous les fichiers (*);;Fichiers texte (*.txt)", options=options
+        )
         if file_name:
             # Affiche le nom du fichier dans l'étiquette
             self.label.setText(f"Fichier sélectionné : {file_name}")
             self.model = biorbd.Model(file_name)
-
 
     def info_dyn(self):
         if self.process_id.isChecked():
             if self.model:
                 self.process_id = True
         else:
-            print('You need to load a bioMod to process IK, ID')
+            print("You need to load a bioMod to process IK, ID")
             self.process_dyn.setChecked(False)
             self.process_id = False
-
-
-
 
     """Visu Stim"""
 
@@ -183,7 +176,6 @@ class StimInterfaceWidget(QWidget):
         layout.addWidget(stop_button)
         return layout
 
-
     def create_optimization_mode(self):
         """Créer les boutons pour choisir si la stimulation est en mode manuel ou optimisé."""
 
@@ -222,7 +214,9 @@ class StimInterfaceWidget(QWidget):
     def pause_fonction_to_send_stim(self):
         self.dolookneedsendstim = not self.check_pause_stim.isChecked()
 
-    def set_channel_inputs(self, channel, channel_layout, name_input, amplitude_input, pulse_width_input, frequency_input, mode_input):
+    def set_channel_inputs(
+        self, channel, channel_layout, name_input, amplitude_input, pulse_width_input, frequency_input, mode_input
+    ):
         # Enregistrer les widgets pour le canal sélectionné
         self.channel_inputs[channel] = {
             "layout": channel_layout,
@@ -270,8 +264,16 @@ class StimInterfaceWidget(QWidget):
                 self.channel_config_layout.addLayout(channel_layout)
 
                 # Enregistrer les widgets pour le canal sélectionné
-                self.set_channel_inputs(self, channel, channel_layout, name_input, amplitude_input, pulse_width_input,
-                                  frequency_input, mode_input)
+                self.set_channel_inputs(
+                    self,
+                    channel,
+                    channel_layout,
+                    name_input,
+                    amplitude_input,
+                    pulse_width_input,
+                    frequency_input,
+                    mode_input,
+                )
 
         # Supprimer les canaux désélectionnés
         for channel in list(self.channel_inputs.keys()):
@@ -367,7 +369,6 @@ class StimInterfaceWidget(QWidget):
         except Exception as e:
             logging.error(f"Error when sending stimulation : {e}")
 
-
     def call_pause_stimulation(self):
         try:
             if self.stimulator:
@@ -426,7 +427,6 @@ class StimInterfaceWidget(QWidget):
         self.bayesian_optimizer.plot_bayesian_optim_results(result)
         # TODO : Charbie -> stimulate with these parameters for a few minutes ?
 
-
     def stop_bayesian_optimization(self):
         """Arrête l'optimisation Bayésienne."""
         # TODO save the best parameters
@@ -438,5 +438,3 @@ if __name__ == "__main__":
     widget = StimInterfaceWidget()
     widget.show()
     sys.exit(app.exec_())
-
-
