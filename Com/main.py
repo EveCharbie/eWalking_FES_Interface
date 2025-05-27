@@ -11,6 +11,15 @@ import queue
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(levelname)s - %(message)s")
 
 
+class DataThread(QThread):
+    def __init__(self, receiver):
+        super().__init__()
+        self.receiver = receiver
+
+    def run(self):
+        self.receiver.start_receiving()
+
+
 def main():
     # Définition des paramètres du serveur
     server_ip = "192.168.0.1"  #   # "192.168.0.1" 127.0.0.1# Adresse IP du serveur
@@ -19,23 +28,15 @@ def main():
     # Créez une application PyQt5
     app = QApplication(sys.argv)
 
-    # Créer un buffer pour mettre en cache les données reçues
-    buffer = queue.Queue()
+    # # Créer un buffer pour mettre en cache les données reçues
+    # buffer = queue.Queue()
 
     # Créez une instance du widget de visualisation
-    visualization_widget = StimInterfaceWidget(buffer)
+    visualization_widget = StimInterfaceWidget()
     visualization_widget.show()
 
     # Créez une instance de DataReceiver
-    data_receiver = DataReceiver(server_ip, server_port, visualization_widget, buffer)
-
-    class DataThread(QThread):
-        def __init__(self, receiver):
-            super().__init__()
-            self.receiver = receiver
-
-        def run(self):
-            self.receiver.start_receiving()
+    data_receiver = DataReceiver(server_ip, server_port, visualization_widget)
 
     data_thread = DataThread(data_receiver)
     data_thread.start()

@@ -34,7 +34,7 @@ class StimulationMode(Enum):
 
 
 class StimInterfaceWidget(QWidget):
-    def __init__(self, buffer):
+    def __init__(self):
         super().__init__()
         self.title = "Interface Stimulation"
         self.channel_inputs = {}
@@ -52,7 +52,7 @@ class StimInterfaceWidget(QWidget):
         self.foot_emg = {}
         self.num_config = 0
         self.model = None
-        self.buffer = buffer
+        # self.buffer = buffer
 
     def init_ui(self):
         """Initialisation de l'interface utilisateur."""
@@ -66,8 +66,8 @@ class StimInterfaceWidget(QWidget):
         # Configuration des canaux de stimulation
         layout.addWidget(self.create_channel_config_group())
 
-        # Contrôles de stimulation
-        layout.addLayout(self.create_stimulation_controls())
+        # Mode de stimulation
+        layout.addWidget(self.create_optimization_mode())
 
         self.setLayout(layout)
 
@@ -86,6 +86,7 @@ class StimInterfaceWidget(QWidget):
 
         model_selection = QPushButton("Choisir un fichier", self)
         model_selection.clicked.connect(self.open_filename_dialog)
+        self.model_label = QLabel("No model selected", self)
 
         self.process_dyn = QCheckBox("Process IK and ID")
         self.process_dyn.setChecked(False)
@@ -93,6 +94,7 @@ class StimInterfaceWidget(QWidget):
 
         general_layout.addWidget(subject_mass)
         general_layout.addWidget(model_selection)
+        general_layout.addWidget(self.model_label)
         general_layout.addWidget(self.process_dyn)
 
         # Créer un bouton OK et connecter la fonction d'enregistrement
@@ -122,8 +124,10 @@ class StimInterfaceWidget(QWidget):
         )
         if file_name:
             # Affiche le nom du fichier dans l'étiquette
-            self.label.setText(f"Fichier sélectionné : {file_name}")
+            self.model_label.setText(f"Fichier sélectionné : {file_name}")
             self.model = biorbd.Model(file_name)
+        else:
+            self.model_label.setText("No model selected")
 
     def info_dyn(self):
         if self.process_id.isChecked():
@@ -155,6 +159,9 @@ class StimInterfaceWidget(QWidget):
         # Ajouter un layout vertical pour les entrées dynamiques des canaux
         self.channel_config_layout = QVBoxLayout()
         layout.addLayout(self.channel_config_layout)
+
+        # Ajouter l'actualisation des parametres de stim
+        layout.addLayout(self.create_stimulation_controls())
 
         groupbox.setLayout(layout)
         return groupbox

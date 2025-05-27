@@ -31,20 +31,20 @@ class DataReceiver(QObject):
         self.fzl_buffer = deque(maxlen=500)
         self.time_buffer = deque(maxlen=500)
 
-        # Plots forces antéropostérieures
-        self.force_plot_right = pg.PlotWidget(title="Right AP Force")
-        self.plot_curve_fyr = self.force_plot_right.plot(pen="y")
-
-        self.force_plot_left = pg.PlotWidget(title="Left AP Force")
-        self.plot_curve_fyl = self.force_plot_left.plot(pen="r")
-
-        # Ajout des plots au GUI
-        self.visualization_widget.layout().addWidget(self.force_plot_right)
-        self.visualization_widget.layout().addWidget(self.force_plot_left)
-
-        # Lignes d'événements
-        self.event_lines_right = []
-        self.event_lines_left = []
+        # # Plots forces antéropostérieures
+        # self.force_plot_right = pg.PlotWidget(title="Right AP Force")
+        # self.plot_curve_fyr = self.force_plot_right.plot(pen="y")
+        #
+        # self.force_plot_left = pg.PlotWidget(title="Left AP Force")
+        # self.plot_curve_fyl = self.force_plot_left.plot(pen="r")
+        #
+        # # Ajout des plots au GUI
+        # self.visualization_widget.layout().addWidget(self.force_plot_right)
+        # self.visualization_widget.layout().addWidget(self.force_plot_left)
+        #
+        # # Lignes d'événements
+        # self.event_lines_right = []
+        # self.event_lines_left = []
 
         # Timer pour mise à jour régulière
         self.plot_timer = QTimer()
