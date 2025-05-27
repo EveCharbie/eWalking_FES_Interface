@@ -1,3 +1,4 @@
+from enum import Enum
 from PyQt5.QtWidgets import (
     QApplication,
     QVBoxLayout,
@@ -11,17 +12,25 @@ from PyQt5.QtWidgets import (
     QComboBox,
     QLabel,
     QFileDialog,
+    QGridLayout,
+    QRadioButton,
 )
 import sys
 import logging
 import biorbd
 from pysciencemode import Device, Modes, Channel
 from pysciencemode import RehastimP24 as St
-from bayesian_optimizer import BayesianOptimizer
+from StimulationProcess.bayesian_optimizer import BayesianOptimizer
 
 
 # Configurer le logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
+
+class StimulationMode(Enum):
+    MANUAL = "manual"
+    BAYESIAN = "bayesian"
+    ILC = "ilc"
 
 
 class StimInterfaceWidget(QWidget):
@@ -59,7 +68,6 @@ class StimInterfaceWidget(QWidget):
 
         # Contrôles de stimulation
         layout.addLayout(self.create_stimulation_controls())
-        layout.addWidget(self.create_optimization_mode())
 
         self.setLayout(layout)
 
@@ -313,6 +321,10 @@ class StimInterfaceWidget(QWidget):
 
         self.start_button.setEnabled(True)
         self.stop_button.setEnabled(True)
+
+    def update_stimulation(self):
+        if self.stimulator is not None:
+            self.stimulator.update_stimulation()
 
     def manual_optim_chosen(self):
         self.update_button.setEnabled(True)

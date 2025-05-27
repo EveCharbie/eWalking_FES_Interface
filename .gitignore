@@ -1,2 +1,12 @@
 
 .DS_Store
+
+RealTime_GaitProcess/__pycache__/
+
+Stim_P24/__pycache__/
+
+Com/__pycache__/
+
+Bertec_self_paced/__pycache__/
+
+.idea/
