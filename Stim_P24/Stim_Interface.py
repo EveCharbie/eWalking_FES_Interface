@@ -26,6 +26,12 @@ from StimulationProcess.bayesian_optimizer import BayesianOptimizer
 # Configurer le logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
+DEFAULT_BOUNDS = {
+    "Amplitude": [0, 100],  # Amplitude en mA
+    "Pulse Width": [0, 1000],  # Largeur d'impulsion en microsecondes
+    "Frequency": [0, 200],  # Fréquence en Hz
+}
+
 
 class StimulationMode(Enum):
     MANUAL = "manual"
@@ -44,6 +50,10 @@ class StimInterfaceWidget(QWidget):
         self.stimulator_is_active = False
         self.stimulator_is_started = False
         self.stimulation_mode = StimulationMode.MANUAL
+        self.channel_bounds = {f"Canal {i}": DEFAULT_BOUNDS for i in range(1, 9)}
+        self.num_stable_cycles = 0
+        self.current_cost = None
+        self.discomfort = 0
         self.init_ui()
         self.stimulator = None
         self.stimulator_is_active = False
@@ -193,36 +203,76 @@ class StimInterfaceWidget(QWidget):
 
     def create_optimization_mode(self):
         """Créer les boutons pour choisir si la stimulation est en mode manuel ou optimisé."""
-
-        groupbox = QGroupBox("Stimulation parameter mode:")
+        groupbox = QGroupBox("Stimulation Parameter Mode:")
         layout = QGridLayout()
 
+        # Manual Mode
         self.manual_mode_button = QRadioButton("Manual", self)
         self.manual_mode_button.setChecked(True)
         self.manual_mode_button.toggled.connect(self.manual_optim_chosen)
         self.update_button = QPushButton("Actualiser Paramètre Stim")
         self.update_button.setEnabled(False)
         self.update_button.clicked.connect(self.update_stimulation)
-        layout.addWidget(self.manual_mode_button, 0, 0)
-        layout.addWidget(self.update_button, 0, 1)
 
-        self.bayesian_mode_button = QRadioButton("Bayesian optimization", self)
+        layout.addWidget(self.manual_mode_button, 0, 0, 1, 1)
+        layout.addWidget(self.update_button, 0, 1, 1, 1)
+
+        # Bayesian Optimization Mode
+        self.bayesian_mode_button = QRadioButton("Bayesian Optimization", self)
         self.bayesian_mode_button.toggled.connect(self.bayesian_optim_chosen)
-        self.start_bayesian_optim_button = QPushButton("Start optim")
+        self.start_bayesian_optim_button = QPushButton("Start Optim")
         self.start_bayesian_optim_button.setEnabled(False)
         self.start_bayesian_optim_button.clicked.connect(self.start_bayesian_optimization)
-        self.stop_bayesian_optim_button = QPushButton("Early termination optim")
+        self.stop_bayesian_optim_button = QPushButton("Early Termination Optim")
         self.stop_bayesian_optim_button.setEnabled(False)
         self.stop_bayesian_optim_button.clicked.connect(self.stop_bayesian_optimization)
-        layout.addWidget(self.bayesian_mode_button, 1, 0)
-        layout.addWidget(self.start_bayesian_optim_button, 1, 1)
-        layout.addWidget(self.stop_bayesian_optim_button, 1, 2)
 
-        self.ilc_mode_button = QRadioButton("Iterative learning control", self)
+        layout.addWidget(self.bayesian_mode_button, 1, 0, 1, 1)
+        layout.addWidget(self.start_bayesian_optim_button, 1, 1, 1, 1)
+        layout.addWidget(self.stop_bayesian_optim_button, 1, 2, 1, 1)
+
+        # Iterative Learning Control Mode
+        self.ilc_mode_button = QRadioButton("Iterative Learning Control", self)
         self.ilc_mode_button.toggled.connect(self.ilc_optim_chosen)
         self.ilc_mode_button.setEnabled(False)  # TODO: Charbie -> Implement ILC, for now always disabled
-        layout.addWidget(self.ilc_mode_button, 2, 0)
+        layout.addWidget(self.ilc_mode_button, 2, 0, 1, 1)
 
+        # Channel Bounds Section
+        self.channel_bounds_inputs = {f"Canal {i}": {} for i in range(1, 9)}
+        for i in range(1, 9):
+            channel_label = QLabel(f"Canal {i} :")
+            layout.addWidget(channel_label, 3, i - 1)
+
+            for parameter_name in DEFAULT_BOUNDS.keys():
+                if parameter_name not in self.channel_bounds_inputs:
+                    self.channel_bounds_inputs[parameter_name] = {}
+
+                channel_min_bound = QSpinBox()
+                channel_min_bound.setRange(DEFAULT_BOUNDS[parameter_name][0], DEFAULT_BOUNDS[parameter_name][1])
+                channel_min_bound.setValue(DEFAULT_BOUNDS[parameter_name][0])
+                channel_max_bound = QSpinBox()
+                channel_max_bound.setRange(DEFAULT_BOUNDS[parameter_name][0], DEFAULT_BOUNDS[parameter_name][1])
+                channel_max_bound.setValue(DEFAULT_BOUNDS[parameter_name][1])
+
+                self.channel_bounds_inputs[f"Canal {i}"][parameter_name] = [channel_min_bound, channel_max_bound]
+                layout.addWidget(channel_min_bound, 4, i - 1, 1, 1)
+                layout.addWidget(channel_max_bound, 5, i - 1, 1, 1)
+
+        stable_cycles_label = QLabel(f"There were <b>{self.num_stable_cycles}</b> stable cycles")
+        layout.addWidget(stable_cycles_label, 0, 5)
+        current_cost_label = QLabel(f"The current cost is <b>{self.current_cost}</b>")
+        layout.addWidget(current_cost_label, 1, 5)
+        discomfort_label = QLabel(f"Discomfort  :")
+        layout.addWidget(discomfort_label, 2, 4)
+        discomfort_box = QSpinBox()
+        discomfort_box.setRange(0, 10)
+        discomfort_box.setValue(self.discomfort)
+        layout.addWidget(discomfort_box, 2, 5)
+        discomfort_button = QPushButton("Set discomfort")
+        discomfort_button.clicked.connect(lambda: setattr(self, "discomfort", discomfort_box.value()))
+        layout.addWidget(discomfort_button, 2, 6)
+
+        # Set the groupbox layout
         groupbox.setLayout(layout)
         return groupbox
 
@@ -256,13 +306,13 @@ class StimInterfaceWidget(QWidget):
                 name_input = QLineEdit()
                 name_input.setPlaceholderText(f"Canal {channel} - Nom")
                 amplitude_input = QSpinBox()
-                amplitude_input.setRange(0, 100)
+                amplitude_input.setRange(DEFAULT_BOUNDS["Amplitude"][0], DEFAULT_BOUNDS["Amplitude"][1])
                 amplitude_input.setSuffix(" mA")
                 pulse_width_input = QSpinBox()
-                pulse_width_input.setRange(0, 1000)
+                pulse_width_input.setRange(DEFAULT_BOUNDS["Pulse Width"][0], DEFAULT_BOUNDS["Pulse Width"][1])
                 pulse_width_input.setSuffix(" µs")
                 frequency_input = QSpinBox()
-                frequency_input.setRange(0, 200)
+                frequency_input.setRange(DEFAULT_BOUNDS["Frequency"][0], DEFAULT_BOUNDS["Frequency"][1])
                 frequency_input.setSuffix(" Hz")
                 mode_input = QComboBox()
                 mode_input.addItems(["SINGLE", "DOUBLET", "TRIPLET"])
